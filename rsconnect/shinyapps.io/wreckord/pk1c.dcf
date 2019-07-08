@@ -1,0 +1,12 @@
+name: pk1c
+title: pk1c
+username:
+account: wreckord
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 195470
+bundleId: 2208527
+url: https://wreckord.shinyapps.io/pk1c/
+when: 1562535123.04576
+asMultiple: FALSE
+asStatic: FALSE
