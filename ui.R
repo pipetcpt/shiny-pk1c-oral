@@ -26,9 +26,9 @@ navbarPage(
         tags$h2("Concentration-time Curves"),
         plotOutput("concTimePlot"),
         checkboxInput(inputId = "concLog", label = "Log scale"),
-    tags$h2("NCA"),
-    tags$h4("Noncompartmental Analysis of Simulated Dataset using `NonCompart` package"),
-    tableOutput("ncarTable")
+        tags$h2("NCA"),
+        tags$h4("Noncompartmental Analysis of Simulated Dataset using `NonCompart` package"),
+        tableOutput("ncarTable")
       )
     )
   ),

@@ -1,11 +1,7 @@
 library(shiny)
-library(ggplot2)
-library(dplyr)
-library(tidyr)
+library(tidyverse)
 library(MASS)
-library(tibble)
 library(NonCompart)
-# library(ncar)
 library(markdown)
 
 # source("function.R")
@@ -56,11 +52,11 @@ shinyServer(function(input, output) {
   })
 })
 
-#Init_oral <- function(nSubj, CLo, Vo, Ka, DosingHistory, FullCov, Time, PropE=0, AddE=0, Jitter=0)
 
-#Vars <- Init(input$nSubj, input$CL, input$V, input$Ka, input$DH1, input$FullCov, input$Time,input$PropE, input$AddE, input$Jitter)
+# nSubj <- 36
+# Init(10, 2, 10, 1, DH1, FullCov, 0:24, 0, 0, 0)
 
-Init <- function(nSubj, CL, V, Ka, DH1, FullCov, Time, PropE, AddE, Jitter)
+Init <- function(nSubj, CL, V, Ka, DH1, FullCov, Time, PropE, AddE, Jitter, dosing_amt = 6000)
 {
   Var <- list()
   
@@ -74,17 +70,17 @@ Init <- function(nSubj, CL, V, Ka, DH1, FullCov, Time, PropE, AddE, Jitter)
   #DH1 <- eval(parse(text = paste0("c(", DH1, ")")))
   #DH1 <- matrix(DH1, ncol=2, byrow=TRUE) # c(0, 100000)
   
-  dosing_amt <- 6000
+  #dosing_amt <- 6000
   
   DH1 <-  matrix(c(0, dosing_amt, 12, dosing_amt, 24, dosing_amt, 36, dosing_amt, 
                    48, dosing_amt, 60, dosing_amt), nrow=6, ncol=2, byrow=TRUE)
   
-  #DH1 = matrix(c(0, 100000), nrow=1, ncol=2, byrow=TRUE)
+  # DH1 = matrix(c(0, 100000), nrow=1, ncol=2, byrow=TRUE)
   # DH2 = matrix(c(0, 100000, 12, 100000, 24, 100000), nrow=3, ncol=2, byrow=TRUE)
   
   FullCov <- eval(parse(text = paste0("c(", FullCov, ")")))
   FullCov <- matrix(FullCov, nrow=3)  # CL, V, Ka
-  #FullCov <- matrix(c(0,0,0,0,,0,0,0,1), nrow = 3, byrow=TRUE)
+  #FullCov <- matrix(c(0,0,0,0,0.49,0,0,0,0), nrow = 3, byrow=TRUE)
   
   nTrt = 1
   rpk = MASS::mvrnorm(nSubj*nTrt, rep(0, 3), FullCov) ; rpk
@@ -101,13 +97,13 @@ Init <- function(nSubj, CL, V, Ka, DH1, FullCov, Time, PropE, AddE, Jitter)
     cKa = iPK[i, 3]
     BA = 1
     iConc = as.data.frame(pk1coma(cCL, cV, cKa, BioA=BA, DH1, Time, PropE=PropE, AddE=AddE, LLoQ=0, Jitter=Jitter)) %>% 
-      mutate(SUBJ = i)
+      mutate(SUBJ = dosing_amt + i) %>% 
+      mutate(GROUP = dosing_amt)
     individual_Conc[[i]] <- iConc
   }
   
   Conc <- bind_rows(individual_Conc) %>% 
-    mutate(SUBJ = as.factor(SUBJ)) %>% 
-    dplyr::select(CONC = 2, TIME = 1, SUBJ = 3)
+    dplyr::select(CONC = 2, TIME = 1, SUBJ = 3, GROUP)
   
   Var$DH1 <- DH1
   Var$Time <- Time
@@ -115,9 +111,7 @@ Init <- function(nSubj, CL, V, Ka, DH1, FullCov, Time, PropE, AddE, Jitter)
   
   return(Var)
 }
-#nSubj <- 36
-# Init(10, 2, 10, 1, DH1, FullCov, 0:24, 0, 0, 0)
-#pk1coma(2, 10, 1, BioA=1, DH1, 0:24, PropE=0, AddE=0, LLoQ=0, Jitter=0)
+
 pk1coma = function(CL, V, Ka, BioA=1, DosingHistory, Time, PropE=0, AddE=0, LLoQ=0, Jitter=0)
 {
   nObs = length(Time)
@@ -146,5 +140,30 @@ pk1coma = function(CL, V, Ka, BioA=1, DosingHistory, Time, PropE=0, AddE=0, LLoQ
   return(cbind(Time, Conc))
 }
 
+# for test ----
 
+#FullCov <- "0,0,0,0,0,0,0,0,0"
+#var <- Init(32, 120, 240, 3, DH1, FullCov, 0:100, 0, 0, 0)
 
+DH1 <-  matrix(c(0, dosing_amt, 12, dosing_amt, 24, dosing_amt, 36, dosing_amt, 
+                 48, dosing_amt, 60, dosing_amt), nrow=6, ncol=2, byrow=TRUE)
+FullCov <- "0.42^2,0,0, 0,0.62^2,0, 0,0,1.57^2"
+
+var15 <- Init(32, 120, 240, 3, DH1, FullCov, 0:100, 0.14^2, (0.15)^2, 0, dosing_amt = 1500)
+var30 <- Init(32, 120, 240, 3, DH1, FullCov, 0:100, 0.14^2, (0.15)^2, 0, dosing_amt = 3000)
+var45 <- Init(32, 120, 240, 3, DH1, FullCov, 0:100, 0.14^2, (0.15)^2, 0, dosing_amt = 4500)
+var60 <- Init(32, 120, 240, 3, DH1, FullCov, 0:100, 0.14^2, (0.15)^2, 0, dosing_amt = 6000)
+
+combined_var <- bind_rows(var15$Conc, 
+                          var30$Conc, 
+                          var45$Conc, 
+                          var60$Conc)
+head(var60$Conc)
+combined_var %>% 
+  ggplot(aes(x = TIME, y = CONC, group = SUBJ)) +
+  facet_grid(.~GROUP)+
+  geom_line() 
+
+combined_var %>% 
+  write.csv('~/pipetpro/data-whanin/data/conc_dataset.csv')
+  
